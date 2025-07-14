@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Apple Sales Dashboard</title>
+    <link rel="icon" type="image/svg+xml" href="https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .positive-growth {
+            color: #10B981;
+        }
+
+        .negative-growth {
+            color: #EF4444;
+        }
+
+        .status-completed {
+            background-color: #D1FAE5;
+            color: #065F46;
+        }
+
+        .status-pending {
+            background-color: #FEF3C7;
+            color: #92400E;
+        }
+
+        .status-shipped {
+            background-color: #DBEAFE;
+            color: #1E40AF;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-50">
+    <div class="min-h-screen">
+        <header class="bg-white shadow">
+            <div class="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8 flex justify-between items-center">
+                <h1 class="text-2xl font-bold text-gray-900">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg" alt="Apple logo"
+                        class="inline mr-2 w-6 h-6">
+                    Apple Sales Dashboard
+                </h1>
+                <div class="flex items-center space-x-4">
+                    <div class="relative">
+                        <select id="timeRange"
+                            class="block appearance-none bg-white border border-gray-300 text-gray-700 py-2 px-4 rounded leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="today">Hoje</option>
+                            <option value="week">Esta Semana</option>
+                            <option value="month">Este Mês</option>
+                            <option value="quarter">Este Trimestre</option>
+                            <option value="year">Este Ano</option>
+                        </select>
+                    </div>
+                    <div class="text-sm text-gray-500">Última atualização: <span id="lastUpdated"></span></div>
+                </div>
+            </div>
+        </header>
+
+        <main class="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+
+                <div class="bg-white shadow rounded-lg p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-gray-500 text-sm font-medium">Vendas Totais</p>
+                            <h3 class="text-2xl font-bold text-gray-900" id="totalSales">R$ 1,250.75</h3>
+                        </div>
+                        <div class="text-right">
+                            <span id="salesGrowth" class="positive-growth text-sm font-semibold">↑ 15%</span>
+                            <p class="text-xs text-gray-500">vs período anterior</p>
+                        </div>
+                    </div>
+                </div>
+
+
+                <div class="bg-white shadow rounded-lg p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-gray-500 text-sm font-medium">Pedidos Totais</p>
+                            <h3 class="text-2xl font-bold text-gray-900" id="totalOrders">25</h3>
+                        </div>
+                        <div class="text-right">
+                            <span id="ordersGrowth" class="negative-growth text-sm font-semibold">↓ 5%</span>
+                            <p class="text-xs text-gray-500">vs período anterior</p>
+                        </div>
+                    </div>
+                </div>
+
+
+                <div class="bg-white shadow rounded-lg p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-gray-500 text-sm font-medium">Ticket Médio</p>
+                            <h3 class="text-2xl font-bold text-gray-900" id="avgOrderValue">R$ 50.03</h3>
+                        </div>
+                        <div class="text-right">
+                            <span id="aovGrowth" class="positive-growth text-sm font-semibold">↑ 8%</span>
+                            <p class="text-xs text-gray-500">vs período anterior</p>
+                        </div>
+                    </div>
+                </div>
+
+
+                <div class="bg-white shadow rounded-lg p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-gray-500 text-sm font-medium">Lucro Total</p>
+                            <h3 class="text-2xl font-bold text-gray-900" id="totalProfit">R$ 450.20</h3>
+                        </div>
+                        <div class="text-right">
+                            <span id="profitGrowth" class="positive-growth text-sm font-semibold">↑ 20%</span>
+                            <p class="text-xs text-gray-500">vs período anterior</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+
+                <div class="bg-white shadow rounded-lg p-6">
+                    <h2 class="text-lg font-semibold text-gray-900 mb-4">Tendência de Vendas</h2>
+                    <div class="h-64">
+                        <canvas id="salesTrendChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="bg-white shadow rounded-lg p-6">
+                    <h2 class="text-lg font-semibold text-gray-900 mb-4">Vendas por Categoria</h2>
+                    <div class="h-64">
+                        <canvas id="productCategoriesChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+
+            <div class="bg-white shadow rounded-lg p-6 mb-8">
+                <h2 class="text-lg font-semibold text-gray-900 mb-4">Pedidos Recentes</h2>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th scope="col"
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    ID</th>
+                                <th scope="col"
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Cliente</th>
+                                <th scope="col"
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Produto</th>
+                                <th scope="col"
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Valor</th>
+                                <th scope="col"
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Status</th>
+                                <th scope="col"
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Data</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recentOrdersTable" class="bg-white divide-y divide-gray-200">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const salesData = {
+            'today': {
+                totalSales: 1250.75,
+                salesGrowth: 15,
+                totalOrders: 25,
+                ordersGrowth: -5,
+                avgOrderValue: 50.03,
+                aovGrowth: 8,
+                totalProfit: 450.20,
+                profitGrowth: 20,
+                salesTrend: {
+                    labels: ['08h', '09h', '10h', '11h', '12h', '13h', '14h', '15h', '16h', '17h', '18h', '19h', '20h'],
+                    data: [50, 70, 120, 90, 150, 180, 100, 200, 130, 160, 190, 220, 250]
+                },
+                productCategories: {
+                    labels: ['Iphone', 'MacBook', 'AppleWatch', 'Charger', 'Case'],
+                    data: [300, 400, 150, 200, 100]
+                },
+                recentOrders: [
+                    { id: 'ORD001', client: 'Ana Silva', product: 'Iphone 11', value: 1799.99, status: 'Concluído', date: '2023-10-26' },
+                    { id: 'ORD002', client: 'Bruno Costa', product: 'Iphone 12', value: 2289.90, status: 'Pendente', date: '2023-10-26' },
+                    { id: 'ORD003', client: 'Carla Dias', product: 'Case', value: 145.00, status: 'Concluído', date: '2023-10-26' },
+                    { id: 'ORD004', client: 'Daniel Souza', product: 'MacBook Air', value: 4999.90, status: 'Enviado', date: '2023-10-26' },
+                    { id: 'ORD005', client: 'Erica Lima', product: 'AppleWatch Series 8', value: 3200.00, status: 'Concluído', date: '2023-10-26' },
+                ]
+            },
+            'week': {
+                totalSales: 8500.50,
+                salesGrowth: 10,
+                totalOrders: 150,
+                ordersGrowth: 2,
+                avgOrderValue: 56.67,
+                aovGrowth: 5,
+                totalProfit: 3200.75,
+                profitGrowth: 12,
+                salesTrend: {
+                    labels: ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'],
+                    data: [1200, 1500, 1300, 1800, 2000, 1000, 1700]
+                },
+                productCategories: {
+                    labels: ['Iphone', 'MacBook', 'AppleWatch', 'Charger', 'Case'],
+                    data: [2000, 2500, 1000, 1500, 800]
+                },
+                recentOrders: [
+                    { id: 'ORD010', client: 'Mariana Lima', product: 'Iphone 13', value: 3799.90, status: 'Concluído', date: '2023-10-25' },
+                    { id: 'ORD011', client: 'Pedro Rocha', product: 'MacBook Pro', value: 12999.90, status: 'Enviado', date: '2023-10-24' },
+                    { id: 'ORD012', client: 'Julia Santos', product: 'AppleWatch Series 9', value: 3599.99, status: 'Concluído', date: '2023-10-23' },
+                    { id: 'ORD013', client: 'Lucas Oliveira', product: 'Charger 20W', value: 199.00, status: 'Concluído', date: '2023-10-22' },
+                    { id: 'ORD014', client: 'Fernanda Costa', product: 'Iphone 14', value: 4799.00, status: 'Pendente', date: '2023-10-21' },
+                ]
+            },
+            'month': {
+                totalSales: 35000.00,
+                salesGrowth: 25,
+                totalOrders: 600,
+                ordersGrowth: 15,
+                avgOrderValue: 58.33,
+                aovGrowth: 10,
+                totalProfit: 15000.00,
+                profitGrowth: 30,
+                salesTrend: {
+                    labels: Array.from({ length: 30 }, (_, i) => `Dia ${i + 1}`),
+                    data: Array.from({ length: 30 }, () => Math.floor(Math.random() * 1000) + 500)
+                },
+                productCategories: {
+                    labels: ['Iphone', 'MacBook', 'AppleWatch', 'Charger', 'Case'],
+                    data: [8000, 10000, 4000, 6000, 3000]
+                },
+                recentOrders: [
+                    { id: 'ORD050', client: 'Fernando Alves', product: 'Iphone 15 Pro', value: 6799.00, status: 'Concluído', date: '2023-10-20' },
+                    { id: 'ORD051', client: 'Gabriela Souza', product: 'MacBook Air M2', value: 8999.00, status: 'Enviado', date: '2023-10-18' },
+                    { id: 'ORD052', client: 'Henrique Lima', product: 'AppleWatch Ultra', value: 5499.00, status: 'Pendente', date: '2023-10-15' },
+                    { id: 'ORD053', client: 'Isabela Pereira', product: 'Charger MagSafe', value: 399.00, status: 'Concluído', date: '2023-10-12' },
+                    { id: 'ORD054', client: 'João Victor', product: 'Case Iphone 15', value: 249.00, status: 'Concluído', date: '2023-10-10' },
+                ]
+            },
+            'quarter': {
+                totalSales: 100000.00,
+                salesGrowth: 18,
+                totalOrders: 1800,
+                ordersGrowth: 10,
+                avgOrderValue: 55.55,
+                aovGrowth: 7,
+                totalProfit: 40000.00,
+                profitGrowth: 22,
+                salesTrend: {
+                    labels: ['Jul', 'Ago', 'Set', 'Out'],
+                    data: [25000, 30000, 35000, 40000]
+                },
+                productCategories: {
+                    labels: ['Iphone', 'MacBook', 'AppleWatch', 'Charger', 'Case'],
+                    data: [25000, 30000, 10000, 15000, 8000]
+                },
+                recentOrders: [
+                    { id: 'ORD100', client: 'Lucas Martins', product: 'Iphone 14 Pro', value: 5799.00, status: 'Concluído', date: '2023-09-28' },
+                    { id: 'ORD101', client: 'Maria Eduarda', product: 'MacBook Pro 16"', value: 14999.00, status: 'Enviado', date: '2023-09-20' },
+                    { id: 'ORD102', client: 'Nathalia Oliveira', product: 'AppleWatch 7', value: 2999.00, status: 'Concluído', date: '2023-09-15' },
+                    { id: 'ORD103', client: 'Otávio Rocha', product: 'Charger Duplo', value: 349.00, status: 'Concluído', date: '2023-08-22' },
+                    { id: 'ORD104', client: 'Patricia Santos', product: 'Case MacBook Pro', value: 199.00, status: 'Pendente', date: '2023-08-15' },
+                ]
+            },
+            'year': {
+                totalSales: 450000.00,
+                salesGrowth: 30,
+                totalOrders: 8000,
+                ordersGrowth: 25,
+                avgOrderValue: 56.25,
+                aovGrowth: 15,
+                totalProfit: 180000.00,
+                profitGrowth: 35,
+                salesTrend: {
+                    labels: ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'],
+                    data: Array.from({ length: 12 }, () => Math.floor(Math.random() * 50000) + 20000)
+                },
+                productCategories: {
+                    labels: ['Iphone', 'MacBook', 'AppleWatch', 'Charger', 'Case'],
+                    data: [100000, 120000, 40000, 60000, 30000]
+                },
+                recentOrders: [
+                    { id: 'ORD200', client: 'Olivia Santos', product: 'Iphone 13', value: 3799.00, status: 'Concluído', date: '2023-08-10' },
+                    { id: 'ORD201', client: 'Paulo Henrique', product: 'MacBook Air', value: 5999.00, status: 'Enviado', date: '2023-07-25' },
+                    { id: 'ORD202', client: 'Quiteria Rocha', product: 'AppleWatch SE', value: 2299.00, status: 'Concluído', date: '2023-06-01' },
+                    { id: 'ORD203', client: 'Roberto Almeida', product: 'Charger 30W', value: 249.00, status: 'Concluído', date: '2023-05-15' },
+                    { id: 'ORD204', client: 'Sandra Costa', product: 'Case Iphone 14', value: 179.00, status: 'Pendente', date: '2023-04-22' },
+                ]
+            }
+        };
+
+
+        let salesTrendChart;
+        let productCategoriesChart;
+
+
+        function updateDashboard(timeRange) {
+            const data = salesData[timeRange];
+
+            document.getElementById('totalSales').textContent = `R$ ${data.totalSales.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            document.getElementById('salesGrowth').textContent = `${data.salesGrowth > 0 ? '↑' : '↓'} ${Math.abs(data.salesGrowth)}%`;
+            document.getElementById('salesGrowth').className = data.salesGrowth > 0 ? 'positive-growth text-sm font-semibold' : 'negative-growth text-sm font-semibold';
+
+            document.getElementById('totalOrders').textContent = data.totalOrders;
+            document.getElementById('ordersGrowth').textContent = `${data.ordersGrowth > 0 ? '↑' : '↓'} ${Math.abs(data.ordersGrowth)}%`;
+            document.getElementById('ordersGrowth').className = data.ordersGrowth > 0 ? 'positive-growth text-sm font-semibold' : 'negative-growth text-sm font-semibold';
+
+            document.getElementById('avgOrderValue').textContent = `R$ ${data.avgOrderValue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            document.getElementById('aovGrowth').textContent = `${data.aovGrowth > 0 ? '↑' : '↓'} ${Math.abs(data.aovGrowth)}%`;
+            document.getElementById('aovGrowth').className = data.aovGrowth > 0 ? 'positive-growth text-sm font-semibold' : 'negative-growth text-sm font-semibold';
+
+            document.getElementById('totalProfit').textContent = `R$ ${data.totalProfit.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            document.getElementById('profitGrowth').textContent = `${data.profitGrowth > 0 ? '↑' : '↓'} ${Math.abs(data.profitGrowth)}%`;
+            document.getElementById('profitGrowth').className = data.profitGrowth > 0 ? 'positive-growth text-sm font-semibold' : 'negative-growth text-sm font-semibold';
+
+            updateSalesTrendChart(data.salesTrend);
+            updateProductCategoriesChart(data.productCategories);
+
+            updateRecentOrdersTable(data.recentOrders);
+        }
+
+
+        function updateSalesTrendChart(trendData) {
+            if (salesTrendChart) {
+                salesTrendChart.destroy();
+            }
+
+            const ctx = document.getElementById('salesTrendChart').getContext('2d');
+            salesTrendChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: trendData.labels,
+                    datasets: [{
+                        label: 'Vendas (R$)',
+                        data: trendData.data,
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        borderColor: 'rgb(59, 130, 246)',
+                        borderWidth: 2,
+                        tension: 0.3,
+                        pointBackgroundColor: 'rgb(59, 130, 246)',
+                        pointRadius: 3,
+                        pointHoverRadius: 5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                display: true,
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateProductCategoriesChart(categoriesData) {
+            if (productCategoriesChart) {
+                productCategoriesChart.destroy();
+            }
+
+            const ctx = document.getElementById('productCategoriesChart').getContext('2d');
+
+
+            const backgroundColors = [
+                'rgba(255, 99, 132, 0.6)',
+                'rgba(54, 162, 235, 0.6)',
+                'rgba(255, 206, 86, 0.6)',
+                'rgba(75, 192, 192, 0.6)',
+                'rgba(153, 102, 255, 0.6)'
+            ];
+
+            const borderColors = [
+                'rgba(255, 99, 132, 1)',
+                'rgba(54, 162, 235, 1)',
+                'rgba(255, 206, 86, 1)',
+                'rgba(75, 192, 192, 1)',
+                'rgba(153, 102, 255, 1)'
+            ];
+
+            productCategoriesChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: categoriesData.labels,
+                    datasets: [{
+                        data: categoriesData.data,
+                        backgroundColor: backgroundColors,
+                        borderColor: borderColors,
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                        }
+                    },
+                    cutout: '70%'
+                }
+            });
+        }
+
+
+        function updateRecentOrdersTable(orders) {
+            const tableBody = document.getElementById('recentOrdersTable');
+            tableBody.innerHTML = '';
+
+            orders.forEach(order => {
+                const row = document.createElement('tr');
+
+
+                let statusClass = '';
+                if (order.status === 'Concluído') {
+                    statusClass = 'status-completed';
+                } else if (order.status === 'Pendente') {
+                    statusClass = 'status-pending';
+                } else if (order.status === 'Enviado') {
+                    statusClass = 'status-shipped';
+                }
+
+                row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${order.id}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${order.client}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${order.product}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">R$ ${order.value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusClass}">
+                            ${order.status}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${new Date(order.date).toLocaleDateString('pt-BR')}</td>
+                `;
+
+                tableBody.appendChild(row);
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+
+            const now = new Date();
+            const options = {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+            };
+            document.getElementById('lastUpdated').textContent = now.toLocaleString('pt-BR', options);
+
+            updateDashboard('today');
+
+            document.getElementById('timeRange').addEventListener('change', (e) => {
+                updateDashboard(e.target.value);
+            });
+        });
+    </script>
+</body>
+
+</html>
